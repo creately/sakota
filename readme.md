@@ -1,5 +1,7 @@
 # SaKota
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/creately/sakota.svg)](https://greenkeeper.io/)
+
 SaKota proxies js objects and records all changes made on an object without modifying the given object.
 
 ## Getting Started
