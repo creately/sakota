@@ -31,7 +31,17 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
    * Wraps the given object with a Sakota proxy and returns it.
    */
   public static create<T extends object>(obj: T): Proxied<T> {
-    return new Proxy(obj, new Sakota(obj)) as Proxied<T>;
+    return this.createSakota(obj);
+  }
+
+  /**
+   * Wraps the given object with a Sakota proxy and returns it.
+   */
+  private static createSakota<T extends object>(obj: T, parent: Sakota<any> | null = null): Proxied<T> {
+    const handler = new Sakota(obj, parent);
+    const proxied = new Proxy(obj, handler) as Proxied<T>;
+    handler.proxied = proxied;
+    return proxied;
   }
 
   /**
@@ -49,6 +59,16 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
   private diff: { $set: any; $unset: any } | null;
 
   /**
+   * An object with untracked changes made on the proxied object.
+   */
+  private temp: { $set: any; $unset: any } | null;
+
+  /**
+   * Indicates whether the proxy is recording changes done to the object.
+   */
+  private tracked: boolean;
+
+  /**
    * Indicates whether the proxy or any of it's children has changes.
    */
   private changed: boolean;
@@ -59,11 +79,18 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
   private changes: { [prefix: string]: Changes | null };
 
   /**
+   * Holds the proxied instance
+   */
+  private proxied!: Proxied<T>;
+
+  /**
    * Initialize!
    */
   private constructor(private target: T, private parent: Sakota<any> | null = null) {
     this.kids = {};
     this.diff = null;
+    this.temp = null;
+    this.tracked = true;
     this.changed = false;
     this.changes = {};
   }
@@ -75,11 +102,14 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
    * Proxy handler trap for the `in` operator.
    */
   public has(obj: any, key: string | number | symbol): any {
-    if (this.diff) {
-      if (key in this.diff.$unset) {
+    for (const diff of [this.diff, this.temp]) {
+      if (!diff) {
+        continue;
+      }
+      if (key in diff.$unset) {
         return false;
       }
-      if (key in this.diff.$set) {
+      if (key in diff.$set) {
         return true;
       }
     }
@@ -93,12 +123,15 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
     if (key === GET_SAKOTA) {
       return this;
     }
-    if (this.diff) {
-      if (key in this.diff.$unset) {
+    for (const diff of [this.diff, this.temp]) {
+      if (!diff) {
+        continue;
+      }
+      if (key in diff.$unset) {
         return undefined;
       }
-      if (key in this.diff.$set) {
-        return this.diff.$set[key as any];
+      if (key in diff.$set) {
+        return diff.$set[key as any];
       }
     }
     const val = obj[key];
@@ -113,13 +146,16 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
    */
   public ownKeys(obj: any): (KeyType)[] {
     const keys = Reflect.ownKeys(obj);
-    if (this.diff) {
-      for (const key in this.diff.$set) {
+    for (const diff of [this.diff, this.temp]) {
+      if (!diff) {
+        continue;
+      }
+      for (const key in diff.$set) {
         if (keys.indexOf(key) === -1) {
           keys.push(key);
         }
       }
-      for (const key in this.diff.$unset) {
+      for (const key in diff.$unset) {
         const index = keys.indexOf(key);
         if (index !== -1) {
           keys.splice(index, 1);
@@ -136,12 +172,15 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
     if (key === GET_SAKOTA) {
       return { configurable: true, enumerable: false, value: this };
     }
-    if (this.diff) {
-      if (key in this.diff.$unset) {
+    for (const diff of [this.diff, this.temp]) {
+      if (!diff) {
+        continue;
+      }
+      if (key in diff.$unset) {
         return undefined;
       }
-      if (key in this.diff.$set) {
-        return { configurable: true, enumerable: true, value: this.diff.$set[key] };
+      if (key in diff.$set) {
+        return { configurable: true, enumerable: true, value: diff.$set[key] };
       }
     }
     return Object.getOwnPropertyDescriptor(obj, key);
@@ -151,12 +190,10 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
    * Proxy handler trap for setting a property.
    */
   public set(_obj: any, key: KeyType, val: any): boolean {
-    if (!this.diff) {
-      this.diff = { $set: {}, $unset: {} };
-    }
-    delete this.diff.$unset[key];
+    const diff = this.getDiff();
+    delete diff.$unset[key];
     delete this.kids[key];
-    this.diff.$set[key] = val;
+    diff.$set[key] = val;
     this.onChange();
     return true;
   }
@@ -165,17 +202,13 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
    * Proxy handler trap for the `delete` operator.
    */
   public deleteProperty(obj: any, key: KeyType): boolean {
-    if (!(key in obj)) {
-      if (!this.diff || !this.diff.$set || !(key in this.diff.$set)) {
-        return true;
-      }
+    const diff = this.getDiff();
+    if (!(key in obj) && (!diff || !diff.$set || !(key in diff.$set))) {
+      return true;
     }
-    if (!this.diff) {
-      this.diff = { $set: {}, $unset: {} };
-    }
-    delete this.diff.$set[key];
+    delete diff.$set[key];
     delete this.kids[key];
-    this.diff.$unset[key] = true;
+    diff.$unset[key] = true;
     this.onChange();
     return true;
   }
@@ -195,6 +228,19 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
    */
   public hasChanges(): boolean {
     return this.changed;
+  }
+
+  /**
+   * Runs a callback function and do not include changes made inside
+   * this function (synchronous). Changes will be tracked separately
+   * and it will reflect on the proxied object but it will not be
+   * included when the user calls getChanges.
+   * @param callback The callback function to execute in do-not-track
+   */
+  public doNotTrack(callback: (p: Proxied<T>) => void): void {
+    this.tracked = false;
+    callback(this.proxied);
+    this.tracked = true;
   }
 
   /**
@@ -247,6 +293,9 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
    * Marks the proxy and all proxies in it's parent chain as changed.
    */
   private onChange(): void {
+    if (!this.isTracked()) {
+      return;
+    }
     this.changed = true;
     this.changes = {};
     if (this.parent) {
@@ -262,8 +311,38 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
     if (cached) {
       return cached;
     }
-    const agent = new Sakota(obj, this);
-    const proxy = (this.kids[key] = new Proxy(obj, agent));
+    const proxy = Sakota.createSakota(obj, this);
+    this.kids[key] = proxy;
     return proxy;
+  }
+
+  /**
+   * Returns the diff object based on whether tracking or not.
+   */
+  private getDiff() {
+    if (this.isTracked()) {
+      if (!this.diff) {
+        this.diff = { $set: {}, $unset: {} };
+      }
+      return this.diff;
+    }
+    if (!this.temp) {
+      this.temp = { $set: {}, $unset: {} };
+    }
+    return this.temp;
+  }
+
+  /**
+   * Indicates whether the proxy should record changes or not.
+   */
+  private isTracked(): boolean {
+    let handler: Sakota<any> | null = this;
+    while (handler) {
+      if (!handler.tracked) {
+        return false;
+      }
+      handler = handler.parent;
+    }
+    return true;
   }
 }

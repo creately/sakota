@@ -225,63 +225,126 @@ describe('Sakota', () => {
         }
       });
 
-      it('should apply the change on the proxy', () => {
-        const proxy = Sakota.create(c.target);
-        for (let i = 0; i < c.action.length; ++i) {
-          c.action[i](proxy);
-          expect(proxy).toEqual(c.result[i] as any);
-        }
-      });
-
-      it('should record all applied changes', () => {
-        const proxy = Sakota.create(c.target);
-        for (let i = 0; i < c.action.length; ++i) {
-          c.action[i](proxy);
-          expect(proxy.__sakota__.getChanges()).toEqual(c.change[i]);
-        }
-      });
-
-      it('should record changes for nested objects', () => {
-        const proxy = Sakota.create(c.target);
-        for (let i = 0; i < c.action.length; ++i) {
-          c.action[i](proxy);
-          for (const key in c.nested[i]) {
-            expect(proxy[key].__sakota__.getChanges()).toEqual(c.nested[i][key]);
+      describe('tracking', () => {
+        it('should apply the change on the proxy', () => {
+          const proxy = Sakota.create(c.target);
+          for (let i = 0; i < c.action.length; ++i) {
+            c.action[i](proxy);
+            expect(proxy).toEqual(c.result[i] as any);
           }
-        }
-      });
+        });
 
-      it('should not modify the proxy target', () => {
-        const proxy = Sakota.create(freeze(c.target));
-        for (let i = 0; i < c.action.length; ++i) {
-          c.action[i](proxy);
-        }
-      });
-
-      it('should hold a reference to the proxy target', () => {
-        const proxy = Sakota.create(c.target);
-        for (let i = 0; i < c.action.length; ++i) {
-          c.action[i](proxy);
-        }
-        expect( proxy.__sakota__.getTarget() ).toBe( c.target );
-      });
-
-      it('should indicate the proxy has changed', () => {
-        const proxy = Sakota.create(c.target);
-        for (let i = 0; i < c.action.length; ++i) {
-          c.action[i](proxy);
-          expect(proxy.__sakota__.hasChanges()).toEqual(Object.keys(c.change[i]).length > 0);
-        }
-      });
-
-      it('should indicate the proxy has changed for nested objects', () => {
-        const proxy = Sakota.create(c.target);
-        for (let i = 0; i < c.action.length; ++i) {
-          c.action[i](proxy);
-          for (const key in c.nested[i]) {
-            expect(proxy[key].__sakota__.hasChanges()).toEqual(Object.keys(c.nested[i][key]).length > 0);
+        it('should record all applied changes', () => {
+          const proxy = Sakota.create(c.target);
+          for (let i = 0; i < c.action.length; ++i) {
+            c.action[i](proxy);
+            expect(proxy.__sakota__.getChanges()).toEqual(c.change[i]);
           }
-        }
+        });
+
+        it('should record changes for nested objects', () => {
+          const proxy = Sakota.create(c.target);
+          for (let i = 0; i < c.action.length; ++i) {
+            c.action[i](proxy);
+            for (const key in c.nested[i]) {
+              expect(proxy[key].__sakota__.getChanges()).toEqual(c.nested[i][key]);
+            }
+          }
+        });
+
+        it('should not modify the proxy target', () => {
+          const proxy = Sakota.create(freeze(c.target));
+          for (let i = 0; i < c.action.length; ++i) {
+            c.action[i](proxy);
+          }
+        });
+
+        it('should hold a reference to the proxy target', () => {
+          const proxy = Sakota.create(c.target);
+          for (let i = 0; i < c.action.length; ++i) {
+            c.action[i](proxy);
+          }
+          expect(proxy.__sakota__.getTarget()).toBe(c.target);
+        });
+
+        it('should indicate the proxy has changed', () => {
+          const proxy = Sakota.create(c.target);
+          for (let i = 0; i < c.action.length; ++i) {
+            c.action[i](proxy);
+            expect(proxy.__sakota__.hasChanges()).toEqual(Object.keys(c.change[i]).length > 0);
+          }
+        });
+
+        it('should indicate the proxy has changed for nested objects', () => {
+          const proxy = Sakota.create(c.target);
+          for (let i = 0; i < c.action.length; ++i) {
+            c.action[i](proxy);
+            for (const key in c.nested[i]) {
+              expect(proxy[key].__sakota__.hasChanges()).toEqual(Object.keys(c.nested[i][key]).length > 0);
+            }
+          }
+        });
+      });
+
+      describe('do-not-track', () => {
+        it('should apply the change on the proxy', () => {
+          const proxy = Sakota.create(c.target);
+          for (let i = 0; i < c.action.length; ++i) {
+            proxy.__sakota__.doNotTrack(() => c.action[i](proxy));
+            expect(proxy).toEqual(c.result[i] as any);
+          }
+        });
+
+        it('should not record any applied changes', () => {
+          const proxy = Sakota.create(c.target);
+          for (let i = 0; i < c.action.length; ++i) {
+            proxy.__sakota__.doNotTrack(() => c.action[i](proxy));
+            expect(proxy.__sakota__.getChanges()).toEqual({});
+          }
+        });
+
+        it('should not record changes for nested objects', () => {
+          const proxy = Sakota.create(c.target);
+          for (let i = 0; i < c.action.length; ++i) {
+            proxy.__sakota__.doNotTrack(() => c.action[i](proxy));
+            for (const key in c.nested[i]) {
+              expect(proxy[key].__sakota__.getChanges()).toEqual({});
+            }
+          }
+        });
+
+        it('should not modify the proxy target', () => {
+          const proxy = Sakota.create(freeze(c.target));
+          for (let i = 0; i < c.action.length; ++i) {
+            proxy.__sakota__.doNotTrack(() => c.action[i](proxy));
+          }
+        });
+
+        it('should hold a reference to the proxy target', () => {
+          const proxy = Sakota.create(c.target);
+          for (let i = 0; i < c.action.length; ++i) {
+            proxy.__sakota__.doNotTrack(() => c.action[i](proxy));
+          }
+          expect(proxy.__sakota__.getTarget()).toBe(c.target);
+        });
+
+        it('should indicate the proxy has not changed', () => {
+          const proxy = Sakota.create(c.target);
+          for (let i = 0; i < c.action.length; ++i) {
+            proxy.__sakota__.doNotTrack(() => c.action[i](proxy));
+            expect(proxy.__sakota__.hasChanges()).toEqual(false);
+          }
+        });
+
+        it('should indicate the proxy has changed for nested objects', () => {
+          const proxy = Sakota.create(c.target);
+          for (let i = 0; i < c.action.length; ++i) {
+            proxy.__sakota__.doNotTrack(() => c.action[i](proxy));
+            for (const key in c.nested[i]) {
+              expect(proxy[key].__sakota__.hasChanges()).toEqual(false);
+            }
+          }
+        });
       });
     });
   });
