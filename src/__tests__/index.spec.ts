@@ -1,8 +1,5 @@
 import { Sakota } from '../';
 
-Sakota.enableESGetters();
-Sakota.enableESSetters();
-
 /**
  * Function returns an array of different types of values.
  */

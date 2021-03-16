@@ -43,8 +43,8 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
    */
   private static config = {
     prodmode: false,
-    esgetter: false,
-    essetter: false,
+    esgetter: true,
+    essetter: true,
   };
 
   /**
@@ -57,15 +57,15 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
   /**
    * Makes Sakota support javascript getters (expensive!).
    */
-  public static enableESGetters(): void {
-    this.config.esgetter = true;
+  public static disableESGetters(): void {
+    this.config.esgetter = false;
   }
 
   /**
    * Makes Sakota support javascript getters (expensive!).
    */
-  public static enableESSetters(): void {
-    this.config.essetter = true;
+  public static disableESSetters(): void {
+    this.config.essetter = false;
   }
 
   /**
