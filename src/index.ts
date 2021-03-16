@@ -1,3 +1,5 @@
+import deepEqual from './deep-equal';
+
 /**
  * The key used to get the handler.
  */
@@ -236,6 +238,14 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
     }
     if (!this.diff) {
       this.diff = { $set: {}, $unset: {} };
+    }
+    if (key in obj && deepEqual(obj[key], val)) {
+      if (this.diff.$unset[key] || this.diff.$set[key]) {
+        delete this.diff.$unset[key];
+        delete this.diff.$set[key];
+        this.onChange();
+      }
+      return true;
     }
     delete this.diff.$unset[key];
     delete this.kids[key];
