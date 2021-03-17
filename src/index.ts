@@ -1,3 +1,5 @@
+import deepEqual from './deep-equal';
+
 /**
  * The key used to get the handler.
  */
@@ -41,8 +43,8 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
    */
   private static config = {
     prodmode: false,
-    esgetter: false,
-    essetter: false,
+    esgetter: true,
+    essetter: true,
   };
 
   /**
@@ -55,15 +57,15 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
   /**
    * Makes Sakota support javascript getters (expensive!).
    */
-  public static enableESGetters(): void {
-    this.config.esgetter = true;
+  public static disableESGetters(): void {
+    this.config.esgetter = false;
   }
 
   /**
    * Makes Sakota support javascript getters (expensive!).
    */
-  public static enableESSetters(): void {
-    this.config.essetter = true;
+  public static disableESSetters(): void {
+    this.config.essetter = false;
   }
 
   /**
@@ -236,6 +238,14 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
     }
     if (!this.diff) {
       this.diff = { $set: {}, $unset: {} };
+    }
+    if (key in obj && deepEqual(obj[key], val)) {
+      if (this.diff.$unset[key] || this.diff.$set[key]) {
+        delete this.diff.$unset[key];
+        delete this.diff.$set[key];
+        this.onChange();
+      }
+      return true;
     }
     delete this.diff.$unset[key];
     delete this.kids[key];

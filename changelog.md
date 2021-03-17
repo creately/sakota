@@ -1,3 +1,8 @@
+# 2021-03-16 - v2.4.3
+
+ - improved change tracking. now if the value of a property is updated with the same value it will not track as a change.
+ - es getters/setters configuration.
+
 # 2019-06-18 - v2.4.2
 
  - Cache getters and property descriptors using weakmaps to reduce property lookup overhead.
