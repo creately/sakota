@@ -1,3 +1,8 @@
+# 2021-05-14 - v2.4.4
+
+ - added `mergeChanges` method to sakota
+ - replace `deepEqual` with `lodash.isequal`
+
 # 2021-03-16 - v2.4.3
 
  - improved change tracking. now if the value of a property is updated with the same value it will not track as a change.
