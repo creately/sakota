@@ -623,4 +623,101 @@ describe('Sakota', () => {
       expect(console.warn).toHaveBeenCalledTimes(1);
     });
   });
+
+  // Test for mergeChanges
+  // -----------------------
+
+  describe('mergeChanges', () => {
+    it('should merge given changes into the sakota model', () => {
+      const source = {
+        a: 123,
+        a1: 23,
+        b: {
+          x: 234,
+          y: 345,
+        },
+        b1: {
+          x: 234,
+          y: 345,
+        },
+        c: [{ a: 123 }],
+        d: [1, 2, 3],
+        e: [{ a: 123 }],
+      };
+
+      const target = {
+        a: 234,
+        a2: 23,
+        b: {
+          x: 234,
+          z: 234,
+        },
+        b1: {
+          x: 234,
+        },
+        c: [{ b: 123 }, { a: 234 }],
+        d: [1, 3],
+        e: [{ a: 234 }],
+      };
+
+      const wrapped: any = Sakota.create(source);
+      wrapped.a = 234;
+      delete wrapped.a1;
+      wrapped.a2 = 23;
+      wrapped.b.x = 234;
+      delete wrapped.b.y;
+      wrapped.c = [{ b: 123 }, { a: 234 }];
+      wrapped.b.z = 234;
+      wrapped.d = [1, 3];
+      wrapped.e[0].a = 234;
+      delete wrapped.b1.y;
+
+      const wrapped1: any = Sakota.create(source);
+      wrapped1.__sakota__.mergeChanges(wrapped.__sakota__.getChanges());
+      expect(wrapped1).toEqual(target as any);
+    });
+
+    it('should merge given changes into the existing sakota changes', () => {
+      const source = {
+        a: 123,
+        a1: 23,
+        b: {
+          x: 234,
+          y: 345,
+        },
+        c: [{ a: 123 }],
+        d: [1, 2, 3],
+        e: [{ a: 123 }, { b: 123 }],
+      };
+
+      const target = {
+        a: 234,
+        a2: 23,
+        b: {
+          x: 234,
+          z: 234,
+        },
+        c: [{ b: 123 }, { a: 234 }],
+        d: [1, 3],
+        e: [{ a: 234 }, { b: 345 }],
+      };
+
+      const wrapped: any = Sakota.create(source);
+      wrapped.a = 234;
+      delete wrapped.a1;
+      wrapped.a2 = 23;
+      wrapped.b.x = 234;
+      delete wrapped.b.y;
+      wrapped.c = [{ b: 123 }, { a: 234 }];
+
+      const wrapped1: any = Sakota.create(source);
+      wrapped1.b.z = 234;
+      wrapped1.d = [1, 3];
+      wrapped1.e[0].a = 234;
+      wrapped1.e[1].b = 345;
+
+      wrapped.__sakota__.mergeChanges(wrapped1.__sakota__.getChanges());
+      expect(wrapped).toEqual(target as any);
+    });
+  });
 });

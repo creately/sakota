@@ -314,6 +314,59 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
     return pattern ? this.filterChanges(changes, pattern) : changes;
   }
 
+  public mergeChanges(changes: Changes) {
+    const diff = this.diff || { $set: {}, $unset: {} };
+    const kidChanges: { [prefix: string]: Changes } = {};
+    if (changes.$set) {
+      Object.keys(changes.$set).forEach(key => {
+        const dotIndex = key.indexOf('.');
+        if (dotIndex === -1) {
+          delete diff.$unset[key];
+          delete this.kids[key];
+          diff.$set[key] = changes.$set[key];
+        } else {
+          const kkey = key.substring(0, dotIndex);
+          if (kidChanges.hasOwnProperty(kkey)) {
+            kidChanges[kkey].$set[key.substring(dotIndex + 1)] = changes.$set[key];
+          } else {
+            kidChanges[kkey] = {
+              $set: { [key.substring(dotIndex + 1)]: changes.$set[key] },
+              $unset: {},
+            };
+          }
+        }
+      });
+    }
+    if (changes.$unset) {
+      Object.keys(changes.$unset).forEach(key => {
+        const dotIndex = key.indexOf('.');
+        if (dotIndex === -1) {
+          delete diff.$set[key];
+          delete this.kids[key];
+          diff.$unset[key] = true;
+        } else {
+          const kkey = key.substring(0, dotIndex);
+          if (kidChanges.hasOwnProperty(kkey)) {
+            kidChanges[kkey].$unset[key.substring(dotIndex + 1)] = true;
+          } else {
+            kidChanges[kkey] = {
+              $set: {},
+              $unset: { [key.substring(dotIndex + 1)]: true },
+            };
+          }
+        }
+      });
+    }
+
+    Object.keys(kidChanges).forEach(k => {
+      this.getKid(k, (this.target as any)[k]).__sakota__.mergeChanges(kidChanges[k]);
+    });
+
+    this.diff = diff;
+    this.changed = true;
+    this.changes = {};
+  }
+
   /**
    * Resets changes recorded in the proxy. Can be filtered by key name.
    */
