@@ -320,23 +320,27 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
    * needs to be applied to the other object this method can be used.
    * @param changes changes in Sakota format.
    */
-  public mergeChanges(changes: Changes) {
+  public mergeChanges(changes: Partial<Changes>) {
+    if (Object.keys(changes).length === 0) {
+      return;
+    }
     const diff = this.diff || { $set: {}, $unset: {} };
     const kidChanges: { [prefix: string]: Changes } = {};
     if (changes.$set) {
+      const $set = changes.$set;
       Object.keys(changes.$set).forEach(key => {
         const dotIndex = key.indexOf('.');
         if (dotIndex === -1) {
           delete diff.$unset[key];
           delete this.kids[key];
-          diff.$set[key] = changes.$set[key];
+          diff.$set[key] = $set[key];
         } else {
           const kkey = key.substring(0, dotIndex);
           if (kidChanges.hasOwnProperty(kkey)) {
-            kidChanges[kkey].$set[key.substring(dotIndex + 1)] = changes.$set[key];
+            kidChanges[kkey].$set[key.substring(dotIndex + 1)] = $set[key];
           } else {
             kidChanges[kkey] = {
-              $set: { [key.substring(dotIndex + 1)]: changes.$set[key] },
+              $set: { [key.substring(dotIndex + 1)]: $set[key] },
               $unset: {},
             };
           }
