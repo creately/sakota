@@ -314,6 +314,12 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
     return pattern ? this.filterChanges(changes, pattern) : changes;
   }
 
+  /**
+   * This is an internal method to merge the changes from a different sakota object.
+   * If there are 2 skota objects, and one is modified and the same modification
+   * needs to be applied to the other object this method can be used.
+   * @param changes changes in Sakota format.
+   */
   public mergeChanges(changes: Changes) {
     const diff = this.diff || { $set: {}, $unset: {} };
     const kidChanges: { [prefix: string]: Changes } = {};
