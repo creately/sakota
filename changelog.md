@@ -1,6 +1,6 @@
 # 2021-05-14 - v2.4.4
 
- - added `mergeChanges` method to sakota
+ - added `mergeChanges` and `unwrap` method to sakota
  - replace `deepEqual` with `lodash.isequal`
 
 # 2021-03-16 - v2.4.3

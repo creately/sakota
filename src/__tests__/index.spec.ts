@@ -720,4 +720,95 @@ describe('Sakota', () => {
       expect(wrapped).toEqual(target as any);
     });
   });
+
+  // Test for unwrap
+  // -----------------------
+  describe('unwrap', () => {
+    it('should create a copy of the object removing sakota', () => {
+      const obj: any = {
+        a: 123,
+        b: {
+          c: 234,
+        },
+      };
+      const wrapped = Sakota.create(freeze(obj));
+      wrapped.a = 345;
+      wrapped.a1 = 234;
+      wrapped.b.c = 2345;
+
+      const expected = {
+        a: 345,
+        a1: 234,
+        b: {
+          c: 2345,
+        },
+      };
+
+      const unwrapped = wrapped.__sakota__.unwrap();
+      expect(unwrapped).toEqual(expected);
+      expect(unwrapped === obj).toBeFalsy();
+      expect(unwrapped.__sakota__).toBeUndefined();
+      expect(unwrapped.b.__sakota__).toBeUndefined();
+    });
+
+    it('should apply the changes to the target object if unwrapped in place', () => {
+      const obj: any = {
+        a: 123,
+        b: {
+          c: 234,
+        },
+      };
+      const wrapped = Sakota.create(obj);
+      wrapped.a = 345;
+      wrapped.a1 = 234;
+      wrapped.b.c = 2345;
+
+      const expected = {
+        a: 345,
+        a1: 234,
+        b: {
+          c: 2345,
+        },
+      };
+
+      const unwrapped = wrapped.__sakota__.unwrap(true);
+      expect(unwrapped === obj).toBeTruthy();
+      expect(obj).toEqual(expected);
+      expect(obj.__sakota__).toBeUndefined();
+      expect(obj.b.__sakota__).toBeUndefined();
+    });
+
+    it('should remove Sakota wrapper around array props', () => {
+      const obj: any = {
+        a: [{ b: 234 }],
+      };
+      const wrapped = Sakota.create(freeze(obj));
+      wrapped.a[0].b = 345;
+      const expected = {
+        a: [{ b: 345 }],
+      };
+
+      const unwrapped = wrapped.__sakota__.unwrap();
+      expect(unwrapped).toEqual(expected);
+      expect(unwrapped === obj).toBeFalsy();
+      expect(unwrapped.__sakota__).toBeUndefined();
+      expect(unwrapped.a.__sakota__).toBeUndefined();
+      expect(unwrapped.a[0].__sakota__).toBeUndefined();
+    });
+
+    it('should return the same object as target', () => {
+      const obj: any = {
+        a: [{ b: 234 }],
+      };
+      const wrapped = Sakota.create(obj);
+      delete obj.a[0].b;
+
+      const unwrapped = wrapped.__sakota__.unwrap(true);
+      expect(unwrapped === obj).toBeTruthy();
+      expect(unwrapped).toEqual({ a: [{}] });
+      expect(unwrapped.__sakota__).toBeUndefined();
+      expect(unwrapped.a.__sakota__).toBeUndefined();
+      expect(unwrapped.a[0].__sakota__).toBeUndefined();
+    });
+  });
 });

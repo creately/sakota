@@ -394,6 +394,28 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
     this.onChange();
   }
 
+  /**
+   * this method removes Sakota wrapper for the target object
+   * @param inplace if true modifies the target object otherwise returns a copy of the target
+   * @returns Sakota wrapper removed object
+   */
+  public unwrap(inplace: boolean = false) {
+    const $set = this.diff ? Object.assign({}, this.diff.$set) : {};
+    const $unset = this.diff ? Object.keys(this.diff.$unset) : [];
+    Object.keys(this.kids).forEach(k => {
+      $set[k] = this.kids[k].__sakota__.unwrap(inplace);
+    });
+    let val: any;
+    if (Array.isArray(this.target)) {
+      val = inplace ? this.target : this.target.slice();
+      Object.keys($set).forEach(k => (val[k] = $set[k]));
+    } else {
+      val = inplace ? Object.assign(this.target, $set) : Object.assign({}, this.target, $set);
+    }
+    $unset.forEach(k => delete val[k]);
+    return val;
+  }
+
   // Private Methods
   // ---------------
 
