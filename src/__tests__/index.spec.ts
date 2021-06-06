@@ -811,4 +811,35 @@ describe('Sakota', () => {
       expect(unwrapped.a[0].__sakota__).toBeUndefined();
     });
   });
+
+  describe('mergeChanges + unwrap', () => {
+    it('should handle multiple changes properly', () => {
+      const source = {
+        a: 123,
+      };
+      const target = {
+        a: 234,
+        b: {
+          c: 345,
+        },
+        c: {
+          d: 456,
+        },
+      };
+      const sakotaWrapped: any = Sakota.create(source);
+      sakotaWrapped.a = 234;
+      sakotaWrapped.b = {
+        c: 234,
+        d: 345,
+      };
+      const sakotaWrapped1 = Sakota.create(sakotaWrapped.__sakota__.unwrap());
+      sakotaWrapped1.b.c = 345;
+      delete sakotaWrapped1.b.d;
+      sakotaWrapped1.c = { d: 234 };
+      sakotaWrapped1.c.d = 456;
+      sakotaWrapped.__sakota__.mergeChanges(sakotaWrapped1.__sakota__.getChanges());
+      expect(sakotaWrapped.__sakota__.unwrap()).toEqual(sakotaWrapped);
+      expect(sakotaWrapped).toEqual(target);
+    });
+  });
 });

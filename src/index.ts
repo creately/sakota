@@ -1,4 +1,5 @@
 import isEqual from 'lodash.isequal';
+import _set from 'lodash.set';
 
 /**
  * The key used to get the handler.
@@ -369,12 +370,58 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
     }
 
     Object.keys(kidChanges).forEach(k => {
-      this.getKid(k, (this.target as any)[k]).__sakota__.mergeChanges(kidChanges[k]);
+      if (diff.$set.hasOwnProperty(k)) {
+        /* istanbul ignore if  */
+        if (typeof diff.$set[k] !== 'object') {
+          throw new Error('Invalid modifier'); // this scenario is not expected.
+        }
+        this.applyModifier(diff.$set[k], kidChanges[k]);
+      } else if (this.target.hasOwnProperty(k)) {
+        this.getKid(k, (this.target as any)[k]).__sakota__.mergeChanges(kidChanges[k]);
+      } else {
+        console.warn('unexpected modifier', { path: k, modifier: changes });
+        const skeys = Object.keys(kidChanges[k].$set);
+        const ukeys = Object.keys(kidChanges[k].$set);
+        if (skeys.length === 0 || ukeys.length > 0 || skeys.some(k => k.includes('.'))) {
+          throw new Error('Invalid modifier'); // this scenario is not expected.
+        } else {
+          diff.$set[k] = kidChanges[k].$set;
+        }
+      }
     });
 
     this.diff = diff;
     this.changed = true;
     this.changes = {};
+  }
+
+  /**
+   * applying Sakota diff to an object inplace.
+   * this is similar to @creately/mungo::modify method.
+   * @param obj
+   * @param modifier
+   */
+  private applyModifier(obj: any, modifier: Changes) {
+    Object.keys(modifier.$set).forEach(k => {
+      _set(obj, k.split('.'), modifier.$set[k]);
+    });
+    Object.keys(modifier.$unset).forEach(k => {
+      if (k.includes('.')) {
+        const path = k.split('.');
+        k = path.pop() as string;
+        delete this._get(obj, path)[k];
+      } else {
+        delete obj[k];
+      }
+    });
+  }
+
+  private _get(obj: any, path: string[]): any {
+    if (path.length === 0) {
+      return obj;
+    }
+    const [prop, ...remainingPath] = path;
+    return this._get(obj[prop], remainingPath);
   }
 
   /**
