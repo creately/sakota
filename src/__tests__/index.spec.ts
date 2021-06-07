@@ -747,8 +747,7 @@ describe('Sakota', () => {
       const unwrapped = wrapped.__sakota__.unwrap();
       expect(unwrapped).toEqual(expected);
       expect(unwrapped === obj).toBeFalsy();
-      expect(unwrapped.__sakota__).toBeUndefined();
-      expect(unwrapped.b.__sakota__).toBeUndefined();
+      expect(Sakota.hasSakota(unwrapped)).toBeFalsy();
     });
 
     it('should apply the changes to the target object if unwrapped in place', () => {
@@ -774,8 +773,7 @@ describe('Sakota', () => {
       const unwrapped = wrapped.__sakota__.unwrap(true);
       expect(unwrapped === obj).toBeTruthy();
       expect(obj).toEqual(expected);
-      expect(obj.__sakota__).toBeUndefined();
-      expect(obj.b.__sakota__).toBeUndefined();
+      expect(Sakota.hasSakota(unwrapped)).toBeFalsy();
     });
 
     it('should remove Sakota wrapper around array props', () => {
@@ -791,9 +789,7 @@ describe('Sakota', () => {
       const unwrapped = wrapped.__sakota__.unwrap();
       expect(unwrapped).toEqual(expected);
       expect(unwrapped === obj).toBeFalsy();
-      expect(unwrapped.__sakota__).toBeUndefined();
-      expect(unwrapped.a.__sakota__).toBeUndefined();
-      expect(unwrapped.a[0].__sakota__).toBeUndefined();
+      expect(Sakota.hasSakota(unwrapped)).toBeFalsy();
     });
 
     it('should return the same object as target', () => {
@@ -806,9 +802,7 @@ describe('Sakota', () => {
       const unwrapped = wrapped.__sakota__.unwrap(true);
       expect(unwrapped === obj).toBeTruthy();
       expect(unwrapped).toEqual({ a: [{}] });
-      expect(unwrapped.__sakota__).toBeUndefined();
-      expect(unwrapped.a.__sakota__).toBeUndefined();
-      expect(unwrapped.a[0].__sakota__).toBeUndefined();
+      expect(Sakota.hasSakota(unwrapped)).toBeFalsy();
     });
   });
 

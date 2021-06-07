@@ -2,6 +2,7 @@
 
  - added `mergeChanges` and `unwrap` method to sakota
  - replace `deepEqual` with `lodash.isequal`
+ - added `hasSakota` a public static method
 
 # 2021-03-16 - v2.4.3
 

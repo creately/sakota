@@ -226,7 +226,7 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
    */
   public set(obj: any, key: KeyType, val: any): boolean {
     if (!Sakota.config.prodmode) {
-      if (this._hasSakota(val)) {
+      if (Sakota.hasSakota(val)) {
         console.warn('Sakota: value is also wrapped by Sakota!', { obj: obj, key, val });
       }
     }
@@ -645,7 +645,7 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
   /**
    * Checks whether the value or it's children is proxied with Sakota.
    */
-  private _hasSakota(value: unknown): boolean {
+  public static hasSakota(value: unknown): boolean {
     if (typeof value !== 'object') {
       return false;
     }
@@ -657,7 +657,7 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
     }
     if (Array.isArray(value)) {
       for (const child of value) {
-        if (this._hasSakota(child)) {
+        if (Sakota.hasSakota(child)) {
           return true;
         }
       }
@@ -665,7 +665,7 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
     }
     for (const key in value) {
       const child = (value as any)[key];
-      if (this._hasSakota(child)) {
+      if (Sakota.hasSakota(child)) {
         return true;
       }
     }
