@@ -623,4 +623,217 @@ describe('Sakota', () => {
       expect(console.warn).toHaveBeenCalledTimes(1);
     });
   });
+
+  // Test for mergeChanges
+  // -----------------------
+
+  describe('mergeChanges', () => {
+    it('should merge given changes into the sakota model', () => {
+      const source = {
+        a: 123,
+        a1: 23,
+        b: {
+          x: 234,
+          y: 345,
+        },
+        b1: {
+          x: 234,
+          y: 345,
+        },
+        c: [{ a: 123 }],
+        d: [1, 2, 3],
+        e: [{ a: 123 }],
+      };
+
+      const target = {
+        a: 234,
+        a2: 23,
+        b: {
+          x: 234,
+          z: 234,
+        },
+        b1: {
+          x: 234,
+        },
+        c: [{ b: 123 }, { a: 234 }],
+        d: [1, 3],
+        e: [{ a: 234 }],
+      };
+
+      const wrapped: any = Sakota.create(source);
+      wrapped.a = 234;
+      delete wrapped.a1;
+      wrapped.a2 = 23;
+      wrapped.b.x = 234;
+      delete wrapped.b.y;
+      wrapped.c = [{ b: 123 }, { a: 234 }];
+      wrapped.b.z = 234;
+      wrapped.d = [1, 3];
+      wrapped.e[0].a = 234;
+      delete wrapped.b1.y;
+
+      const wrapped1: any = Sakota.create(source);
+      wrapped1.__sakota__.mergeChanges(wrapped.__sakota__.getChanges());
+      expect(wrapped1).toEqual(target as any);
+    });
+
+    it('should merge given changes into the existing sakota changes', () => {
+      const source = {
+        a: 123,
+        a1: 23,
+        b: {
+          x: 234,
+          y: 345,
+        },
+        c: [{ a: 123 }],
+        d: [1, 2, 3],
+        e: [{ a: 123 }, { b: 123 }],
+      };
+
+      const target = {
+        a: 234,
+        a2: 23,
+        b: {
+          x: 234,
+          z: 234,
+        },
+        c: [{ b: 123 }, { a: 234 }],
+        d: [1, 3],
+        e: [{ a: 234 }, { b: 345 }],
+      };
+
+      const wrapped: any = Sakota.create(source);
+      wrapped.a = 234;
+      delete wrapped.a1;
+      wrapped.a2 = 23;
+      wrapped.b.x = 234;
+      delete wrapped.b.y;
+      wrapped.c = [{ b: 123 }, { a: 234 }];
+
+      const wrapped1: any = Sakota.create(source);
+      wrapped1.b.z = 234;
+      wrapped1.d = [1, 3];
+      wrapped1.e[0].a = 234;
+      wrapped1.e[1].b = 345;
+
+      wrapped.__sakota__.mergeChanges(wrapped1.__sakota__.getChanges());
+      expect(wrapped).toEqual(target as any);
+    });
+  });
+
+  // Test for unwrap
+  // -----------------------
+  describe('unwrap', () => {
+    it('should create a copy of the object removing sakota', () => {
+      const obj: any = {
+        a: 123,
+        b: {
+          c: 234,
+        },
+      };
+      const wrapped = Sakota.create(freeze(obj));
+      wrapped.a = 345;
+      wrapped.a1 = 234;
+      wrapped.b.c = 2345;
+
+      const expected = {
+        a: 345,
+        a1: 234,
+        b: {
+          c: 2345,
+        },
+      };
+
+      const unwrapped = wrapped.__sakota__.unwrap();
+      expect(unwrapped).toEqual(expected);
+      expect(unwrapped === obj).toBeFalsy();
+      expect(Sakota.hasSakota(unwrapped)).toBeFalsy();
+    });
+
+    it('should apply the changes to the target object if unwrapped in place', () => {
+      const obj: any = {
+        a: 123,
+        b: {
+          c: 234,
+        },
+      };
+      const wrapped = Sakota.create(obj);
+      wrapped.a = 345;
+      wrapped.a1 = 234;
+      wrapped.b.c = 2345;
+
+      const expected = {
+        a: 345,
+        a1: 234,
+        b: {
+          c: 2345,
+        },
+      };
+
+      const unwrapped = wrapped.__sakota__.unwrap(true);
+      expect(unwrapped === obj).toBeTruthy();
+      expect(obj).toEqual(expected);
+      expect(Sakota.hasSakota(unwrapped)).toBeFalsy();
+    });
+
+    it('should remove Sakota wrapper around array props', () => {
+      const obj: any = {
+        a: [{ b: 234 }],
+      };
+      const wrapped = Sakota.create(freeze(obj));
+      wrapped.a[0].b = 345;
+      const expected = {
+        a: [{ b: 345 }],
+      };
+
+      const unwrapped = wrapped.__sakota__.unwrap();
+      expect(unwrapped).toEqual(expected);
+      expect(unwrapped === obj).toBeFalsy();
+      expect(Sakota.hasSakota(unwrapped)).toBeFalsy();
+    });
+
+    it('should return the same object as target', () => {
+      const obj: any = {
+        a: [{ b: 234 }],
+      };
+      const wrapped = Sakota.create(obj);
+      delete obj.a[0].b;
+
+      const unwrapped = wrapped.__sakota__.unwrap(true);
+      expect(unwrapped === obj).toBeTruthy();
+      expect(unwrapped).toEqual({ a: [{}] });
+      expect(Sakota.hasSakota(unwrapped)).toBeFalsy();
+    });
+  });
+
+  describe('mergeChanges + unwrap', () => {
+    it('should handle multiple changes properly', () => {
+      const source = {
+        a: 123,
+      };
+      const target = {
+        a: 234,
+        b: {
+          c: 345,
+        },
+        c: {
+          d: 456,
+        },
+      };
+      const sakotaWrapped: any = Sakota.create(source);
+      sakotaWrapped.a = 234;
+      sakotaWrapped.b = {
+        c: 234,
+        d: 345,
+      };
+      const sakotaWrapped1 = Sakota.create(sakotaWrapped.__sakota__.unwrap());
+      sakotaWrapped1.b.c = 345;
+      delete sakotaWrapped1.b.d;
+      sakotaWrapped1.c = { d: 234 };
+      sakotaWrapped1.c.d = 456;
+      sakotaWrapped.__sakota__.mergeChanges(sakotaWrapped1.__sakota__.getChanges());
+      expect(sakotaWrapped.__sakota__.unwrap()).toEqual(sakotaWrapped);
+      expect(sakotaWrapped).toEqual(target);
+    });
+  });
 });

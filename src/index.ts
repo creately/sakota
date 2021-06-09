@@ -1,4 +1,5 @@
-import deepEqual from './deep-equal';
+import isEqual from 'lodash.isequal';
+import _set from 'lodash.set';
 
 /**
  * The key used to get the handler.
@@ -225,7 +226,7 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
    */
   public set(obj: any, key: KeyType, val: any): boolean {
     if (!Sakota.config.prodmode) {
-      if (this._hasSakota(val)) {
+      if (Sakota.hasSakota(val)) {
         console.warn('Sakota: value is also wrapped by Sakota!', { obj: obj, key, val });
       }
     }
@@ -239,7 +240,7 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
     if (!this.diff) {
       this.diff = { $set: {}, $unset: {} };
     }
-    if (key in obj && deepEqual(obj[key], val)) {
+    if (key in obj && isEqual(obj[key], val)) {
       if (this.diff.$unset[key] || this.diff.$set[key]) {
         delete this.diff.$unset[key];
         delete this.diff.$set[key];
@@ -315,6 +316,115 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
   }
 
   /**
+   * This is an internal method to merge the changes from a different sakota object.
+   * If there are 2 skota objects, and one is modified and the same modification
+   * needs to be applied to the other object this method can be used.
+   * @param changes changes in Sakota format.
+   */
+  public mergeChanges(changes: Partial<Changes>) {
+    if (Object.keys(changes).length === 0) {
+      return;
+    }
+    const diff = this.diff || { $set: {}, $unset: {} };
+    const kidChanges: { [prefix: string]: Changes } = {};
+    if (changes.$set) {
+      const $set = changes.$set;
+      Object.keys(changes.$set).forEach(key => {
+        const dotIndex = key.indexOf('.');
+        if (dotIndex === -1) {
+          delete diff.$unset[key];
+          delete this.kids[key];
+          diff.$set[key] = $set[key];
+        } else {
+          const kkey = key.substring(0, dotIndex);
+          if (kidChanges.hasOwnProperty(kkey)) {
+            kidChanges[kkey].$set[key.substring(dotIndex + 1)] = $set[key];
+          } else {
+            kidChanges[kkey] = {
+              $set: { [key.substring(dotIndex + 1)]: $set[key] },
+              $unset: {},
+            };
+          }
+        }
+      });
+    }
+    if (changes.$unset) {
+      Object.keys(changes.$unset).forEach(key => {
+        const dotIndex = key.indexOf('.');
+        if (dotIndex === -1) {
+          delete diff.$set[key];
+          delete this.kids[key];
+          diff.$unset[key] = true;
+        } else {
+          const kkey = key.substring(0, dotIndex);
+          if (kidChanges.hasOwnProperty(kkey)) {
+            kidChanges[kkey].$unset[key.substring(dotIndex + 1)] = true;
+          } else {
+            kidChanges[kkey] = {
+              $set: {},
+              $unset: { [key.substring(dotIndex + 1)]: true },
+            };
+          }
+        }
+      });
+    }
+
+    Object.keys(kidChanges).forEach(k => {
+      if (diff.$set.hasOwnProperty(k)) {
+        /* istanbul ignore if  */
+        if (typeof diff.$set[k] !== 'object') {
+          throw new Error('Invalid modifier'); // this scenario is not expected.
+        }
+        this.applyModifier(diff.$set[k], kidChanges[k]);
+      } else if (this.target.hasOwnProperty(k)) {
+        this.getKid(k, (this.target as any)[k]).__sakota__.mergeChanges(kidChanges[k]);
+      } else {
+        console.warn('unexpected modifier', { path: k, modifier: changes });
+        const skeys = Object.keys(kidChanges[k].$set);
+        const ukeys = Object.keys(kidChanges[k].$set);
+        if (skeys.length === 0 || ukeys.length > 0 || skeys.some(k => k.includes('.'))) {
+          throw new Error('Invalid modifier'); // this scenario is not expected.
+        } else {
+          diff.$set[k] = kidChanges[k].$set;
+        }
+      }
+    });
+
+    this.diff = diff;
+    this.changed = true;
+    this.changes = {};
+  }
+
+  /**
+   * applying Sakota diff to an object inplace.
+   * this is similar to @creately/mungo::modify method.
+   * @param obj
+   * @param modifier
+   */
+  private applyModifier(obj: any, modifier: Changes) {
+    Object.keys(modifier.$set).forEach(k => {
+      _set(obj, k.split('.'), modifier.$set[k]);
+    });
+    Object.keys(modifier.$unset).forEach(k => {
+      if (k.includes('.')) {
+        const path = k.split('.');
+        k = path.pop() as string;
+        delete this._get(obj, path)[k];
+      } else {
+        delete obj[k];
+      }
+    });
+  }
+
+  private _get(obj: any, path: string[]): any {
+    if (path.length === 0) {
+      return obj;
+    }
+    const [prop, ...remainingPath] = path;
+    return this._get(obj[prop], remainingPath);
+  }
+
+  /**
    * Resets changes recorded in the proxy. Can be filtered by key name.
    */
   public reset(key?: string): void {
@@ -329,6 +439,28 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
       }
     }
     this.onChange();
+  }
+
+  /**
+   * this method removes Sakota wrapper for the target object
+   * @param inplace if true modifies the target object otherwise returns a copy of the target
+   * @returns Sakota wrapper removed object
+   */
+  public unwrap(inplace: boolean = false) {
+    const $set = this.diff ? Object.assign({}, this.diff.$set) : {};
+    const $unset = this.diff ? Object.keys(this.diff.$unset) : [];
+    Object.keys(this.kids).forEach(k => {
+      $set[k] = this.kids[k].__sakota__.unwrap(inplace);
+    });
+    let val: any;
+    if (Array.isArray(this.target)) {
+      val = inplace ? this.target : this.target.slice();
+      Object.keys($set).forEach(k => (val[k] = $set[k]));
+    } else {
+      val = inplace ? Object.assign(this.target, $set) : Object.assign({}, this.target, $set);
+    }
+    $unset.forEach(k => delete val[k]);
+    return val;
   }
 
   // Private Methods
@@ -513,7 +645,7 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
   /**
    * Checks whether the value or it's children is proxied with Sakota.
    */
-  private _hasSakota(value: unknown): boolean {
+  public static hasSakota(value: unknown): boolean {
     if (typeof value !== 'object') {
       return false;
     }
@@ -525,7 +657,7 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
     }
     if (Array.isArray(value)) {
       for (const child of value) {
-        if (this._hasSakota(child)) {
+        if (Sakota.hasSakota(child)) {
           return true;
         }
       }
@@ -533,7 +665,7 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
     }
     for (const key in value) {
       const child = (value as any)[key];
-      if (this._hasSakota(child)) {
+      if (Sakota.hasSakota(child)) {
         return true;
       }
     }
