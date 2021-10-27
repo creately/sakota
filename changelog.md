@@ -1,3 +1,7 @@
+# 2021-10-27 - v2.4.5
+
+ - Fix the ownKeys function type issue.
+ 
 # 2021-05-14 - v2.4.4
 
  - added `mergeChanges` and `unwrap` method to sakota
