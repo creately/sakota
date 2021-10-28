@@ -179,7 +179,7 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
   /**
    * Proxy handler trap for `Reflect.ownKeys()`.
    */
-  public ownKeys(obj: any): (string  | symbol)[] {
+  public ownKeys(obj: any): (string | symbol)[] {
     // FIXME: need to figure out why this return (string | number | symbol)[]
     // which is not the same as the return type of ES2015 Reflect.ownKeys.
     const keys = Reflect.ownKeys(obj) as (string | symbol)[];
