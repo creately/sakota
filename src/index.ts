@@ -179,7 +179,7 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
   /**
    * Proxy handler trap for `Reflect.ownKeys()`.
    */
-  public ownKeys(obj: any): (KeyType)[] {
+  public ownKeys(obj: any): (string  | symbol)[] {
     const keys = Reflect.ownKeys(obj);
     if (this.diff) {
       for (const key in this.diff.$set) {
