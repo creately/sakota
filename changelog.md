@@ -1,3 +1,7 @@
+# 2022-04-06 - v2.4.6
+
+ - bug fixes on mergeChanges and unwrap methods
+
 # 2021-10-27 - v2.4.5
 
  - Fix the ownKeys function type issue.

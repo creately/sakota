@@ -383,7 +383,7 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
       } else {
         console.warn('unexpected modifier', { path: k, modifier: changes });
         const skeys = Object.keys(kidChanges[k].$set);
-        const ukeys = Object.keys(kidChanges[k].$set);
+        const ukeys = Object.keys(kidChanges[k].$unset);
         if (skeys.length === 0 || ukeys.length > 0 || skeys.some(k => k.includes('.'))) {
           throw new Error('Invalid modifier'); // this scenario is not expected.
         } else {
@@ -459,7 +459,12 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
       val = inplace ? this.target : this.target.slice();
       Object.keys($set).forEach(k => (val[k] = $set[k]));
     } else {
-      val = inplace ? Object.assign(this.target, $set) : Object.assign({}, this.target, $set);
+      if (inplace) {
+        val = Object.assign(this.target, $set);
+      } else {
+        val = Object.assign({}, this.target, $set);
+        Object.setPrototypeOf(val, Object.getPrototypeOf(this.target));
+      }
     }
     $unset.forEach(k => delete val[k]);
     return val;

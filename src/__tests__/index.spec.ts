@@ -719,6 +719,47 @@ describe('Sakota', () => {
       wrapped.__sakota__.mergeChanges(wrapped1.__sakota__.getChanges());
       expect(wrapped).toEqual(target as any);
     });
+
+    it('should merge only upto 2 levels', () => {
+      const entity = {
+        data: { d1: 'data1' },
+      };
+      const wrapped = Sakota.create(entity);
+      const modifier = { $set: { 'links.l1': { id: 'l1' } } };
+      spyOn(console, 'warn');
+      wrapped.__sakota__.mergeChanges(modifier);
+      expect(wrapped).toEqual({
+        ...entity,
+        links: {
+          l1: {
+            id: 'l1',
+          },
+        },
+      } as any);
+      expect(console.warn).toHaveBeenCalled();
+    });
+
+    it('throw if the modifier is incorrect', () => {
+      const entity = {
+        data: { d1: 'data1' },
+      };
+      const wrapped = Sakota.create(entity);
+      const modifier = { $set: { 'links.l1.data': 'data1' } };
+      spyOn(console, 'warn');
+      expect(() => wrapped.__sakota__.mergeChanges(modifier)).toThrow();
+      expect(console.warn).toHaveBeenCalled();
+    });
+
+    it('throw if the modifier is incorrect(2)', () => {
+      const entity = {
+        data: { d1: 'data1' },
+      };
+      const wrapped = Sakota.create(entity);
+      const modifier = { $unset: { 'links.l1': true } };
+      spyOn(console, 'warn');
+      expect(() => wrapped.__sakota__.mergeChanges(modifier)).toThrow();
+      expect(console.warn).toHaveBeenCalled();
+    });
   });
 
   // Test for unwrap
@@ -797,12 +838,22 @@ describe('Sakota', () => {
         a: [{ b: 234 }],
       };
       const wrapped = Sakota.create(obj);
-      delete obj.a[0].b;
+      delete wrapped.a[0].b;
 
       const unwrapped = wrapped.__sakota__.unwrap(true);
       expect(unwrapped === obj).toBeTruthy();
       expect(unwrapped).toEqual({ a: [{}] });
       expect(Sakota.hasSakota(unwrapped)).toBeFalsy();
+    });
+
+    it('should preserve the object type information after unwrap', () => {
+      // class APoint extends Point {}
+      const obj: any = new Point();
+      const wrapped = Sakota.create(obj);
+      wrapped.p = { x: 2, y: 3 };
+
+      const unwrapped = wrapped.__sakota__.unwrap();
+      expect(unwrapped).toEqual(new Point(2, 3));
     });
   });
 
