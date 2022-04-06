@@ -463,9 +463,8 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
         val = Object.assign(this.target, $set);
       } else {
         val = Object.assign({}, this.target, $set);
-        Object.setPrototypeOf( val, Object.getPrototypeOf( this.target ));
+        Object.setPrototypeOf(val, Object.getPrototypeOf(this.target));
       }
-      
     }
     $unset.forEach(k => delete val[k]);
     return val;
