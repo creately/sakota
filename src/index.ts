@@ -271,7 +271,9 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
     }
     delete this.diff.$set[key];
     delete this.kids[key];
-    this.diff.$unset[key] = true;
+    if (key in obj) {
+      this.diff.$unset[key] = true;
+    }
     this.onChange();
     return true;
   }
@@ -323,7 +325,7 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
    * needs to be applied to the other object this method can be used.
    * @param changes changes in Sakota format.
    */
-  public mergeChanges(changes: Partial<Changes>) {
+  public mergeChanges(changes: Partial<Changes>, ignoreErrors = false) {
     if (Object.keys(changes).length === 0) {
       return;
     }
@@ -331,12 +333,17 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
     const kidChanges: { [prefix: string]: Changes } = {};
     if (changes.$set) {
       const $set = changes.$set;
+      const obj: {[key: string]: any} = this.target;
       Object.keys(changes.$set).forEach(key => {
         const dotIndex = key.indexOf('.');
         if (dotIndex === -1) {
           delete diff.$unset[key];
           delete this.kids[key];
-          diff.$set[key] = $set[key];
+          if (isEqual(obj[key], $set[key])) {
+            delete diff.$set[key];
+          } else {
+            diff.$set[key] = $set[key];
+          }
         } else {
           const kkey = key.substring(0, dotIndex);
           if (kidChanges.hasOwnProperty(kkey)) {
@@ -356,7 +363,9 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
         if (dotIndex === -1) {
           delete diff.$set[key];
           delete this.kids[key];
-          diff.$unset[key] = true;
+          if ( key in this.target ) {
+              diff.$unset[key] = true;
+          }
         } else {
           const kkey = key.substring(0, dotIndex);
           if (kidChanges.hasOwnProperty(kkey)) {
@@ -375,16 +384,22 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
       if (diff.$set.hasOwnProperty(k)) {
         /* istanbul ignore if  */
         if (typeof diff.$set[k] !== 'object') {
+          if (ignoreErrors) {
+            return;
+          }
           throw new Error('Invalid modifier'); // this scenario is not expected.
         }
         this.applyModifier(diff.$set[k], kidChanges[k]);
       } else if (this.target.hasOwnProperty(k)) {
-        this.getKid(k, (this.target as any)[k]).__sakota__.mergeChanges(kidChanges[k]);
+        this.getKid(k, (this.target as any)[k]).__sakota__.mergeChanges(kidChanges[k], ignoreErrors);
       } else {
         console.warn('unexpected modifier', { path: k, modifier: changes });
         const skeys = Object.keys(kidChanges[k].$set);
         const ukeys = Object.keys(kidChanges[k].$unset);
         if (skeys.length === 0 || ukeys.length > 0 || skeys.some(k => k.includes('.'))) {
+          if (ignoreErrors) {
+            return;
+          }
           throw new Error('Invalid modifier'); // this scenario is not expected.
         } else {
           diff.$set[k] = kidChanges[k].$set;
