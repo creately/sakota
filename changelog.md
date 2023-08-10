@@ -1,3 +1,7 @@
+# 2023-08-10 - v2.4.7
+
+ - bug fixes on mergeChanges and deleteProperty methods
+
 # 2022-04-06 - v2.4.6
 
  - bug fixes on mergeChanges and unwrap methods
