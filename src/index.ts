@@ -333,7 +333,7 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
     const kidChanges: { [prefix: string]: Changes } = {};
     if (changes.$set) {
       const $set = changes.$set;
-      const obj: {[key: string]: any} = this.target;
+      const obj: { [key: string]: any } = this.target;
       Object.keys(changes.$set).forEach(key => {
         const dotIndex = key.indexOf('.');
         if (dotIndex === -1) {
@@ -363,8 +363,8 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
         if (dotIndex === -1) {
           delete diff.$set[key];
           delete this.kids[key];
-          if ( key in this.target ) {
-              diff.$unset[key] = true;
+          if (key in this.target) {
+            diff.$unset[key] = true;
           }
         } else {
           const kkey = key.substring(0, dotIndex);
