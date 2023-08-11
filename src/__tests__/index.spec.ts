@@ -448,8 +448,8 @@ describe('Sakota', () => {
         { $set: { 'a.b': 10, x: 30 } },
         { $set: { 'a.b': 10, x: 30, 'c.d.e': 20 } },
         { $set: { 'a.b': 100, x: 30, 'c.d.e': 20 } },
-        { $set: { 'a.b': 100, 'c.d.e': 20 }, $unset: { x: true } },
-        { $set: { 'a.b': 100 }, $unset: { x: true, c: true } },
+        { $set: { 'a.b': 100, 'c.d.e': 20 } },
+        { $set: { 'a.b': 100 }, $unset: { c: true } },
       ],
       nested: [
         { a: { $set: { b: 10 } }, c: {} },
@@ -590,6 +590,14 @@ describe('Sakota', () => {
         proxy.a = 12;
         expect(proxy.__sakota__.getChanges()).toEqual({ $set: { a: 12 } });
         proxy.a = 10;
+        expect(proxy.__sakota__.getChanges()).toEqual({});
+      });
+
+      it('should not track changes if value is not changed (2)', () => {
+        const proxy = Sakota.create({ a: 10, b: 20, c: 30 } as any);
+        proxy.x = 10;
+        expect(proxy.__sakota__.getChanges()).toEqual({ $set: { x: 10 } });
+        delete proxy.x;
         expect(proxy.__sakota__.getChanges()).toEqual({});
       });
     });
@@ -759,6 +767,30 @@ describe('Sakota', () => {
       spyOn(console, 'warn');
       expect(() => wrapped.__sakota__.mergeChanges(modifier)).toThrow();
       expect(console.warn).toHaveBeenCalled();
+    });
+
+    it('should clear the changes if the value is set to original value again', () => {
+      const entity = {
+        data: { d1: 'data1' },
+      };
+      const wrapped = Sakota.create(entity);
+      wrapped.data.d1 = 'data2';
+      const wrapped1 = Sakota.create(wrapped);
+      wrapped1.data.d1 = 'data1';
+      wrapped.__sakota__.mergeChanges(wrapped1.__sakota__.getChanges());
+      expect(wrapped.__sakota__.getChanges()).toEqual({});
+    });
+
+    it('should clear the changes if the non existing value is removed', () => {
+      const entity = {
+        data: { d1: 'data1' } as any,
+      };
+      const wrapped = Sakota.create(entity);
+      wrapped.data.d2 = 'data2';
+      const wrapped1 = Sakota.create(wrapped);
+      delete wrapped1.data.d2;
+      wrapped.__sakota__.mergeChanges(wrapped1.__sakota__.getChanges());
+      expect(wrapped.__sakota__.getChanges()).toEqual({});
     });
   });
 
