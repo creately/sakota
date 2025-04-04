@@ -1,28 +1,26 @@
 module.exports = function(config) {
   config.set({
     browsers: ['ChromeHeadless'],
-    frameworks: [
-      'jasmine',
-    ],
+    frameworks: ['jasmine'],
     files: [
       { pattern: 'src/__tests.ts' },
     ],
     mime: {
       'text/x-typescript': ['ts'],
     },
-    plugins : [
+    plugins: [
       'karma-webpack',
       'karma-jasmine',
       'karma-chrome-launcher',
-      'karma-coverage-istanbul-reporter',
+      'karma-coverage',
     ],
     preprocessors: {
-      'src/**/*.ts': ['webpack'],
+      'src/**/*.ts': ['webpack', 'coverage'], // Added 'coverage'
     },
     webpack: {
       mode: 'development',
       resolve: {
-        extensions: ['.ts', '.js']
+        extensions: ['.ts', '.js'],
       },
       module: {
         rules: [
@@ -30,20 +28,21 @@ module.exports = function(config) {
             test: /\.ts$/,
             loader: 'ts-loader',
           },
-          {
-            test: /\.ts$/,
-            loader: 'istanbul-instrumenter-loader',
-            exclude: /node_modules|\.spec\.ts$|\.mock\.ts$|__tests\.ts$/,
-            enforce: 'post',
-          }
         ],
       },
     },
-    reporters: ['dots', 'coverage-istanbul'],
-    coverageIstanbulReporter: {
+    reporters: ['dots', 'coverage'],
+    coverageReporter: {
       dir: 'coverage/',
-      reports: [ 'text-summary', 'html', 'lcovonly' ],
-      fixWebpackSourcePaths: true
+      reports: ['text-summary', 'html', 'lcovonly'],
+      check: {
+        global: {
+          statements: 80,
+          branches: 80,
+          functions: 80,
+          lines: 80,
+        },
+      },
     },
   });
 };
