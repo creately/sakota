@@ -529,6 +529,7 @@ describe('Sakota', () => {
         for (let i = 0; i < c.action.length; ++i) {
           c.action[i](proxy);
           expect(proxy.__sakota__.hasChanges()).toEqual(Object.keys(c.change[i]).length > 0);
+          expect(proxy.__sakota__.isDirty()).toEqual(Object.keys(c.change[i]).length > 0);
         }
       });
 
@@ -603,6 +604,14 @@ describe('Sakota', () => {
         delete proxy.x;
         expect(proxy.__sakota__.getChanges()).toEqual({});
       });
+
+      it('should not track changes if value is not changed - intermediate falsy value', () => {
+        const proxy = Sakota.create({ a: 10, b: 20, c: 30 });
+        proxy.a = 0;
+        expect(proxy.__sakota__.getChanges()).toEqual({ $set: { a: 0 } });
+        proxy.a = 10;
+        expect(proxy.__sakota__.getChanges()).toEqual({});
+      });
     });
 
     describe('hasChanges', () => {
@@ -618,6 +627,15 @@ describe('Sakota', () => {
         proxy.a = 1000;
         expect(proxy.__sakota__.hasChanges(/a/)).toEqual(true);
         expect(proxy.__sakota__.hasChanges(/c/)).toEqual(false);
+      });
+
+      it('should return false if the change path is reset', () => {
+        const proxy = Sakota.create({ a: 10, b: 20, c: 30 });
+        proxy.a = 1000;
+        proxy.__sakota__.reset('a');
+        expect(proxy.__sakota__.hasChanges('a')).toEqual(false);
+        expect(proxy.__sakota__.hasChanges()).toEqual(false);
+        expect(proxy.__sakota__.isDirty()).toEqual(true);
       });
     });
   });

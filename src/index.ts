@@ -249,7 +249,7 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
       this.diff = { $set: {}, $unset: {} };
     }
     if (key in obj && isEqual(obj[key], val)) {
-      if (this.diff.$unset[key] || this.diff.$set[key]) {
+      if (key in this.diff.$unset || key in this.diff.$set) {
         delete this.diff.$unset[key];
         delete this.diff.$set[key];
         this.onChange();
@@ -305,11 +305,12 @@ export class Sakota<T extends object> implements ProxyHandler<T> {
    * Returns a boolean indicating whether the proxy has any changes.
    */
   public hasChanges(pattern?: string | RegExp): boolean {
-    if (!this.changed || !pattern) {
-      return this.changed;
-    }
     const changes = this.getChanges('', pattern);
     return Object.keys(changes).length > 0;
+  }
+
+  public isDirty(): boolean {
+    return this.changed;
   }
 
   /**
