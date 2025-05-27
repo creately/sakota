@@ -1,3 +1,3 @@
-declare var require: any;
+// @ts-ignore
 const context = require.context('./', true, /\.spec\.ts$/);
 context.keys().map(context);
