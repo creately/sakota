@@ -16,7 +16,7 @@
   "devDependencies": {
     "@types/jasmine": "^3.3.9",
     "@types/lodash.isequal": "^4.5.5",
-    "istanbul-instrumenter-loader": "^2.0.0",
+    "istanbul-instrumenter-loader": "^3.0.1",
     "jasmine-core": "^3.3.0",
     "karma": "^6.4.4",
     "karma-chrome-launcher": "^2.2.0",
