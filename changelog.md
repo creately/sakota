@@ -1,3 +1,7 @@
+# 2024-04-06 - v2.4.8
+
+ - bug fixes on set and hasChanges methods
+
 # 2023-08-10 - v2.4.7
 
  - bug fixes on mergeChanges and deleteProperty methods
