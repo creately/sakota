@@ -1,6 +1,6 @@
 {
   "name": "@creately/sakota",
-  "version": "2.4.8",
+  "version": "2.4.9",
   "description": "Proxies js objects and records all changes made on an object without modifying the object.",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -32,7 +32,6 @@
     "webpack": "^5.98.0"
   },
   "dependencies": {
-    "lodash.isequal": "^4.5.0",
-    "lodash.set": "^4.3.2"
+    "lodash.isequal": "^4.5.0"
   }
 }

@@ -1,5 +1,5 @@
 import isEqual from 'lodash.isequal';
-import _set from 'lodash.set';
+import { _set } from './utils/lodash';
 
 /**
  * The key used to get the handler.
