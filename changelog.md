@@ -1,3 +1,7 @@
+# 2025-05-29 - v2.4.9
+
+ - Removed `lodash.set` due to deprecation and added wrapper function
+
 # 2024-04-06 - v2.4.8
 
  - bug fixes on set and hasChanges methods
