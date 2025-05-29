@@ -37,7 +37,7 @@ export class Point {
  */
 export function freeze<T extends object>(obj: T): T {
   return new Proxy(obj, {
-    get: (o: T, p: string | symbol ): any => {
+    get: (o: T, p: string | symbol): any => {
       const val = o[p as keyof T];
       if (val && typeof val === 'object') {
         return freeze(val as any);

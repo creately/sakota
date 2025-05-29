@@ -1,3 +1,11 @@
+# 2025-05-29 - v2.5
+ - Removed `lodash.set` due to deprecation and added wrapper function
+ - Updated `karma` from `^3.1.4` to `^6.4.4` 
+ - Updated `karma-webpack` from `^3.0.5` to `^5.0.1` 
+ - Updated `ts-loader` from `^5.3.3` to `^9.5.2` 
+ - Updated `typescript` from `^3.3.3333` to `^5.8.3`
+ - Updated `webpack` from `^4.29.6` to `^5.99.9`
+
 # 2023-08-10 - v2.4.7
 
  - bug fixes on mergeChanges and deleteProperty methods
