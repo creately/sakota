@@ -1,6 +1,6 @@
 {
   "name": "@creately/sakota",
-  "version": "2.4.7",
+  "version": "2.5",
   "description": "Proxies js objects and records all changes made on an object without modifying the object.",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -16,22 +16,20 @@
   "devDependencies": {
     "@types/jasmine": "^3.3.9",
     "@types/lodash.isequal": "^4.5.5",
-    "@types/lodash.set": "^4.3.6",
     "istanbul-instrumenter-loader": "^3.0.1",
     "jasmine-core": "^3.3.0",
-    "karma": "^3.1.4",
+    "karma": "^6.4.4",
     "karma-chrome-launcher": "^2.2.0",
     "karma-coverage-istanbul-reporter": "^2.0.5",
     "karma-jasmine": "^2.0.1",
-    "karma-webpack": "^3.0.5",
+    "karma-webpack": "^5.0.1",
     "prettier": "^1.16.4",
     "rimraf": "^2.6.3",
-    "ts-loader": "^5.3.3",
-    "typescript": "^3.3.3333",
-    "webpack": "^4.29.6"
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.3",
+    "webpack": "^5.99.9"
   },
   "dependencies": {
-    "lodash.isequal": "^4.5.0",
-    "lodash.set": "^4.3.2"
+    "lodash.isequal": "^4.5.0"
   }
 }

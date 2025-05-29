@@ -37,14 +37,16 @@ export class Point {
  */
 export function freeze<T extends object>(obj: T): T {
   return new Proxy(obj, {
-    get: (o, p: keyof T): any => {
-      const val = o[p];
+    get: (o: T, p: string | symbol): any => {
+      const val = o[p as keyof T];
       if (val && typeof val === 'object') {
         return freeze(val as any);
       }
       return val;
     },
-    set: () => fail() as any,
+    set: () => {
+      throw new Error('Cannot modify frozen object');
+    },
   });
 }
 
@@ -570,7 +572,7 @@ describe('Sakota', () => {
       it('should filter changes with a regexp (string)', () => {
         const proxy = Sakota.create({ a: 10, b: 20, c: 30 });
         proxy.a = 1000;
-        delete proxy.c;
+        delete (proxy as any).c;
         expect(proxy.__sakota__.getChanges('', 'a')).toEqual({ $set: { a: 1000 } });
         expect(proxy.__sakota__.getChanges('', 'c')).toEqual({ $unset: { c: true } });
       });
@@ -578,7 +580,7 @@ describe('Sakota', () => {
       it('should filter changes with a regexp', () => {
         const proxy = Sakota.create({ a: 10, b: 20, c: 30 });
         proxy.a = 1000;
-        delete proxy.c;
+        delete (proxy as any).c;
         expect(proxy.__sakota__.getChanges('', /a/)).toEqual({ $set: { a: 1000 } });
         expect(proxy.__sakota__.getChanges('', /c/)).toEqual({ $unset: { c: true } });
       });
